@@ -2,10 +2,10 @@
 Web Scraping Stocks and Bonds Data From IDX and KSEI
 
 Features:
-- Scrape IDX individual stock summary and details :
-    1. Company Profiles
-    2. Today Trading Info
-    3. Financial Reports Links
-- Scrape IDX sectoral stock summary
-- Scrape IDX stock index summary
-- Scrape corporate and government bonds summary and details
+1. Scrape IDX individual stock summary and details :
+    - Company Profiles
+    - Today Trading Info
+    - Financial Reports Links
+2. Scrape IDX stock sectoral summary
+3. Scrape IDX stock index summary
+4. Scrape corporate and government bonds summary and details
