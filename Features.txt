@@ -1,0 +1,10 @@
+Code History:
+    Version 1.0 (2023/03/09):
+        Base version, all code still working as expected
+
+
+Features:
+- Scrape IDX individual stock summary and details
+- Scrape IDX sectoral stock summary and its components
+- Scrape IDX stock index summary
+- Scrape corporate and government bonds summary and details
