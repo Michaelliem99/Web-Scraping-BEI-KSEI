@@ -6,6 +6,6 @@ Features:
     1. Company Profiles
     2. Today Trading Info
     3. Financial Reports Links
-- Scrape IDX sectoral stock summary and its components
+- Scrape IDX sectoral stock summary
 - Scrape IDX stock index summary
 - Scrape corporate and government bonds summary and details
