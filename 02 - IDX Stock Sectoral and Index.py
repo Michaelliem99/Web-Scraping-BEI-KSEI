@@ -69,11 +69,16 @@ time.sleep(2)
 
 # In[5]:
 
+while True:
+    try:
+        BEISectoralSummaryDF = pd.DataFrame(json.loads(BEISectoralSummaryContent)['data']).drop(columns='IntRow')
+        BEISectoralSummaryDF['DTCreate'] = pd.to_datetime(BEISectoralSummaryDF['DTCreate']).dt.normalize()
+        BEISectoralSummaryDF['LastScraped'] = datetime.now()
+        BEISectoralSummaryDF
 
-BEISectoralSummaryDF = pd.DataFrame(json.loads(BEISectoralSummaryContent)['data']).drop(columns='IntRow')
-BEISectoralSummaryDF['DTCreate'] = pd.to_datetime(BEISectoralSummaryDF['DTCreate']).dt.normalize()
-BEISectoralSummaryDF['LastScraped'] = datetime.now()
-BEISectoralSummaryDF
+        break
+    except JSONDecodeError as e:
+        time.sleep(1.5)
 
 
 # In[6]:
@@ -104,13 +109,15 @@ time.sleep(2)
 
 # In[8]:
 
-
-BEIIndexSummaryDF = pd.DataFrame(json.loads(BEIIndexSummaryContent)['Items']).drop(columns='Links')
-BEIIndexSummaryDF['DtCreate'] = pd.to_datetime(BEIIndexSummaryDF['DtCreate']).dt.normalize()
-BEIIndexSummaryDF = BEIIndexSummaryDF.rename(columns={'DtCreate':'DTCreate'})
-BEIIndexSummaryDF['LastScraped'] = datetime.now()
-BEIIndexSummaryDF
-
+while True:
+    try:
+        BEIIndexSummaryDF = pd.DataFrame(json.loads(BEIIndexSummaryContent)['Items']).drop(columns='Links')
+        BEIIndexSummaryDF['DtCreate'] = pd.to_datetime(BEIIndexSummaryDF['DtCreate']).dt.normalize()
+        BEIIndexSummaryDF = BEIIndexSummaryDF.rename(columns={'DtCreate':'DTCreate'})
+        BEIIndexSummaryDF['LastScraped'] = datetime.now()
+        BEIIndexSummaryDF
+    except JSONDecodeError as e:
+        time.sleep(1.5)
 
 # In[9]:
 
