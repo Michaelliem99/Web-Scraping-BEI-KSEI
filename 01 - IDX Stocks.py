@@ -76,8 +76,8 @@ while True:
 
 # In[5]:
 
-    BEIStockSummaryDF = pd.DataFrame(json.loads(BEIStockSummaryContent)['data']).drop(columns=['No'])
-    BEIStockSummaryDF
+BEIStockSummaryDF = pd.DataFrame(json.loads(BEIStockSummaryContent)['data']).drop(columns=['No'])
+BEIStockSummaryDF
 
 # ## Close and Quit Driver
 
