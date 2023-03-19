@@ -69,15 +69,13 @@ while True:
         driver.get(urls['BEIStockSummary'])
         WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME, 'body'))
         BEIStockSummaryContent = driver.find_element(By.TAG_NAME, value='body').text
+        BEIStockSummaryDF = pd.DataFrame(json.loads(BEIStockSummaryContent)['data']).drop(columns=['No'])
+        BEIStockSummaryDF
         break
     except JSONDecodeError as e:
         time.sleep(1.5)
 #             print(stock, 'Company Profiles JSON is not available!', 'Retrying!')
 
-# In[5]:
-
-BEIStockSummaryDF = pd.DataFrame(json.loads(BEIStockSummaryContent)['data']).drop(columns=['No'])
-BEIStockSummaryDF
 
 # ## Close and Quit Driver
 

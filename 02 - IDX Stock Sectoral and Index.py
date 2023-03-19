@@ -116,6 +116,8 @@ while True:
         BEIIndexSummaryDF = BEIIndexSummaryDF.rename(columns={'DtCreate':'DTCreate'})
         BEIIndexSummaryDF['LastScraped'] = datetime.now()
         BEIIndexSummaryDF
+
+        break
     except JSONDecodeError as e:
         time.sleep(1.5)
 
