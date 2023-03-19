@@ -23,6 +23,8 @@ import pandas as pd
 import time
 from datetime import datetime
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -40,10 +42,10 @@ from tqdm import tqdm
 
 
 # Initialize the Chrome driver
+
 options = Options()
 options.add_argument("--headless=new")
-driver = webdriver.Chrome(options=options)
-
+driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
 
 # # Scrape Summary URL
 
@@ -196,7 +198,7 @@ def get_financial_report_file_links(driver, stock, prev_financial_report):
 def load_stock(stock, prev_financial_report_stock):
     options = Options()
     options.add_argument("--headless=new")
-    driver = webdriver.Chrome(options=options)
+    driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
 
     company_profiles = get_company_profiles(driver, stock)
     today_trading_info = get_today_trading_info(driver, stock)

@@ -20,6 +20,8 @@ import pandas as pd
 import time
 from datetime import datetime
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -38,7 +40,7 @@ from tqdm import tqdm
 # Initialize the Chrome driver
 options = Options()
 options.add_argument("--headless=new")
-driver = webdriver.Chrome(options=options)
+driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
 
 
 # # Scrape Summary URL
