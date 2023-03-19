@@ -4,3 +4,4 @@ tqdm==4.65.0
 openpyxl
 requests
 webdriver-manager
+beautifulsoup4
