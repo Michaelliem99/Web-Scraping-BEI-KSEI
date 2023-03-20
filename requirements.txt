@@ -6,3 +6,5 @@ requests
 webdriver-manager
 beautifulsoup4
 dateparser
+sqlalchemy==1.4.46
+psycopg2-binary

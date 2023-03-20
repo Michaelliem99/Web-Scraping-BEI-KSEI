@@ -1,18 +1,12 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 # Code History:
 # 1. Version 1.0 (2023/03/09):
-#     - Base version, working as expected
+# - Base version, working as expected
 
 # <strong>Features:</strong>
 # - Scrape IDX stock sectoral summary
 # - Scrape IDX stock index summary
 # 
 # Plan: Data is scraped <strong>every weekday on 6PM GMT+7</strong>, few hours after the market has closed for the day. So the data you see before 6PM is previous trading day data.
-
-# In[1]:
-
 
 import json
 from json.decoder import JSONDecodeError
@@ -28,46 +22,35 @@ from selenium.webdriver.common.by import By
 import threading
 import concurrent.futures
 from tqdm import tqdm
-
+import os
+import sqlalchemy
+from sqlalchemy import create_engine
 
 # # Chrome Selenium Starter
 # 
 # Why Selenium? Because I need it to bypass cloudfare restriction
 
-# In[2]:
-
-
 # Initialize the Chrome driver
+
 options = Options()
 options.add_argument("--headless=new")
 driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
 
-
 # # Scrape Summary URL
 
 # ## URL List
-
-# In[3]:
-
 
 urls = {
     'BEISectoralSummary':'https://www.idx.co.id/primary/StockData/GetIndexIC',
     'BEIIndexSummary':'https://www.idx.co.id/primary/StockData/GetConstituent',
 }
 
-
 # ## BEI Sectoral Summary
-
-# In[4]:
-
 
 driver.get(urls['BEISectoralSummary'])
 WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME, 'body'))
 BEISectoralSummaryContent = driver.find_element(By.TAG_NAME, value='body').text
 time.sleep(2)
-
-
-# In[5]:
 
 while True:
     try:
@@ -75,14 +58,9 @@ while True:
         BEISectoralSummaryDF['DTCreate'] = pd.to_datetime(BEISectoralSummaryDF['DTCreate']).dt.normalize()
         BEISectoralSummaryDF['LastScraped'] = datetime.now()
         BEISectoralSummaryDF
-
         break
     except JSONDecodeError as e:
         time.sleep(1.5)
-
-
-# In[6]:
-
 
 PrevSectoralSummary = pd.read_excel('stock_index_sectoral.xlsx', sheet_name='Sectoral Summary')
 BEISectoralSummaryDF = pd.concat(
@@ -95,19 +73,12 @@ BEISectoralSummaryDF = pd.concat(
 )
 BEISectoralSummaryDF
 
-
 # ## BEI Index Summary
-
-# In[7]:
-
 
 driver.get(urls['BEIIndexSummary'])
 WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME, 'body'))
 BEIIndexSummaryContent = driver.find_element(By.TAG_NAME, value='body').text
 time.sleep(2)
-
-
-# In[8]:
 
 while True:
     try:
@@ -116,13 +87,9 @@ while True:
         BEIIndexSummaryDF = BEIIndexSummaryDF.rename(columns={'DtCreate':'DTCreate'})
         BEIIndexSummaryDF['LastScraped'] = datetime.now()
         BEIIndexSummaryDF
-
         break
     except JSONDecodeError as e:
         time.sleep(1.5)
-
-# In[9]:
-
 
 PrevIndexSummary = pd.read_excel('stock_index_sectoral.xlsx', sheet_name='Index Summary')
 BEIIndexSummaryDF = pd.concat(
@@ -135,27 +102,26 @@ BEIIndexSummaryDF = pd.concat(
 )
 BEIIndexSummaryDF
 
-
 # ## Close and Quit Driver
-
-# In[10]:
-
 
 driver.quit()
 
+# # Export Result
 
 # ## Export to Excel
 
-# In[11]:
+# with pd.ExcelWriter('stock_index_sectoral.xlsx') as writer:
+#     BEISectoralSummaryDF.to_excel(writer, sheet_name='Sectoral Summary', index=False)
+#     BEIIndexSummaryDF.to_excel(writer, sheet_name='Index Summary', index=False)
 
+# ## Export to DB
 
-with pd.ExcelWriter('stock_index_sectoral.xlsx') as writer:
-    BEISectoralSummaryDF.to_excel(writer, sheet_name='Sectoral Summary', index=False)
-    BEIIndexSummaryDF.to_excel(writer, sheet_name='Index Summary', index=False)
+engine = create_engine(
+    "postgresql://{}:{}@{}/{}".format(
+        os.getenv('POSTGRE_USER'), os.getenv('POSTGRE_PW'), os.getenv('POSTGRE_HOST'), os.getenv('POSTGRE_DB')
+    )
+)
+conn = engine.connect()
 
-
-# In[ ]:
-
-
-
-
+BEISectoralSummaryDF.to_sql('BEISectoralSummary', con=conn, if_exists='replace', index=False)
+BEIIndexSummaryDF.to_sql('BEIIndexSummary', con=conn, if_exists='replace', index=False)

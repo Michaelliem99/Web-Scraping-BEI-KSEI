@@ -1,17 +1,11 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 # Code History:
 # 1. Version 1.0 (2023/03/09):
-#     - Base version, working as expected
+# - Base version, working as expected
 
 # <strong>Features:</strong>
 # - Scrape corporate and government bonds summary and details
 # 
 # Plan: Data is scraped <strong>every weekday on 6PM GMT+7</strong>, few hours after the market has closed for the day. So the data you see before 6PM is previous trading day data.
-
-# In[1]:
-
 
 import json
 from json.decoder import JSONDecodeError
@@ -32,35 +26,28 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 import dateparser
 
+import os
+import sqlalchemy
+from sqlalchemy import create_engine
 
 # # Chrome Selenium Starter
 # 
 # Why Selenium? Because I need it to bypass cloudfare restriction
 
-# In[2]:
-
-
 # Initialize the Chrome driver
+
 options = Options()
 options.add_argument("--headless=new")
 driver = webdriver.Chrome(options=options)
-
 
 # # Scrape Bond Summary
 
 # ## BEI Bonds List
 
-# In[3]:
-
-
 urls = {
     'Corporate Bond':'https://www.idx.co.id/secondary/get/BondSukuk/bond?pageSize=10000&indexFrom=1&bondType=1',
     'Goverment Bond':'https://www.idx.co.id/secondary/get/BondSukuk/bond?pageSize=10000&indexFrom=1&bondType=2'  
 }
-
-
-# In[4]:
-
 
 BEIBondsListDF = pd.DataFrame()
 for issuer_type in urls:
@@ -75,32 +62,20 @@ for issuer_type in urls:
     
 BEIBondsListDF['MatureDate'] = pd.to_datetime(BEIBondsListDF['MatureDate']).dt.normalize()
 
-
-# In[5]:
-
-
 BEIBondsListDF
-
 
 # ## Close and Quit Driver
 
-# In[6]:
-
-
 driver.quit()
-
 
 # # Scrape Bond Details
 
 # ## Get Bond Details Function
 
-# In[7]:
-
-
-## Well, the website has a weird issue, i can access medium term notes with url intended for corporate / govt bonds
-## MTN example: https://www.ksei.co.id/services/registered-securities/medium-term-notes/lc/ABLS01XXMF
-## Different URL example: https://www.ksei.co.id/services/registered-securities/corporate-bonds/lc/ABLS01XXMF
-## Try it and you can still access the medium term notes
+# Well, the website has a weird issue, i can access medium term notes with url intended for corporate / govt bonds
+# MTN example: https://www.ksei.co.id/services/registered-securities/medium-term-notes/lc/ABLS01XXMF
+# Different URL example: https://www.ksei.co.id/services/registered-securities/corporate-bonds/lc/ABLS01XXMF
+# Try it and you can still access the medium term notes
 # 'https://www.ksei.co.id/services/registered-securities/medium-term-notes/lc/ABLS01XXMF'
 # 'https://www.ksei.co.id/services/registered-securities/government-bonds/lc/FR0037'
 
@@ -110,7 +85,6 @@ def get_bond_details(BondId):
             url = 'https://www.ksei.co.id/services/registered-securities/corporate-bonds/lc/' + BondId
             response = requests.get(url)
             soup = BeautifulSoup(response.content, 'html.parser')
-
             data = {}
 
             # Find the dl tag with class="deflist deflist--with-colon"
@@ -131,14 +105,26 @@ def get_bond_details(BondId):
             time.sleep(1.5)
     
     time.sleep(2)
-
     return data
-
 
 # ## Multithreading with Progress Bar
 
-# In[8]:
+# ## Load Previous Scraped Data
 
+engine = create_engine(
+    "postgresql://{}:{}@{}/{}".format(
+        os.getenv('POSTGRE_USER'), os.getenv('POSTGRE_PW'), os.getenv('POSTGRE_HOST'), os.getenv('POSTGRE_DB')
+    )
+)
+conn = engine.connect()
+
+try:
+    prev_bond_details_df = pd.read_sql('SELECT * FROM BondDetails', con=conn)
+except:
+    prev_financial_report_df = pd.read_excel('bonds.xlsx')
+    print('BEIBondsListDF DB Not Available')
+
+# ## Create List to Store Scraped Data
 
 df_list = []
 
@@ -147,31 +133,25 @@ with tqdm(total=len(BEIBondsListDF['BondId'])) as pbar:
         futures = []
         
         for BondId in BEIBondsListDF['BondId']:
-            future = executor.submit(get_bond_details, BondId)
-            futures.append(future)
+            if BondId in prev_bond_details_df['BondID']:
+                continue
+            else:
+                future = executor.submit(get_bond_details, BondId)
+                futures.append(future)
 
         # Use tqdm to add a progress bar to the multithreading process
         for future in as_completed(futures):
             pbar.update(1)
             df_list.append(future.result())
 
-
 # ## Join All Bond Details and Cleaning
 
 # ### Join Bond Details
 
-# In[9]:
-
-
 BondDetailsDF = pd.DataFrame(df_list)
 BondDetailsDF
 
-
-# In[10]:
-
-
 BondDetailsDF.columns
-
 
 # ### Data Transformation
 # 
@@ -179,49 +159,30 @@ BondDetailsDF.columns
 # 2. Interest rate format is string, convert it to float32
 # 3. Replace '-' string with NaN
 
-# In[11]:
-
-
 BondDetailsDF['Listing Date'] = BondDetailsDF['Listing Date'].apply(lambda x: dateparser.parse(x) if x != '-' else np.nan)
 BondDetailsDF['Mature Date'] = BondDetailsDF['Mature Date'].apply(lambda x: dateparser.parse(x) if ((x != '-') and (type(x) == str)) else np.nan)
 BondDetailsDF['Effective Date ISIN'] = BondDetailsDF['Effective Date ISIN'].apply(lambda x: dateparser.parse(x) if x != '-' else np.nan)
 BondDetailsDF['Interest/Disc Rate'] = BondDetailsDF['Interest/Disc Rate'].replace('%', '', regex=True).apply('float32')
 BondDetailsDF = BondDetailsDF.replace('-', np.nan)
 
-
-# In[12]:
-
-
 BondDetailsDF.describe(include='all')
-
 
 # ### Drop Unnecessary Columns
 # 
 # 1. Every column dropped has mostly missing value
 
-# In[13]:
-
-
 BondDetailsDF = BondDetailsDF.drop(columns=['Current Amount', 'Effective Date ISIN', 'Day Count Basis', 'Exercise Price'])
 
+# # Export Results
+
+BondDetailsDF['LastScraped'] = datetime.now()
+BondDetailsDF = pd.concat([prev_bond_details_df, BondDetailsDF])
+BondDetailsDF
 
 # ## Export to Excel
 
-# In[16]:
+# BondDetailsDF.to_excel('bonds.xlsx', index=False)
 
+# ## Export to DB
 
-BondDetailsDF['LastScraped'] = datetime.now()
-BondDetailsDF
-
-
-# In[15]:
-
-
-BondDetailsDF.to_excel('bonds.xlsx', index=False)
-
-
-# In[ ]:
-
-
-
-
+BondDetailsDF.to_sql('BondDetails', con=conn, if_exists='replace', index=False)
