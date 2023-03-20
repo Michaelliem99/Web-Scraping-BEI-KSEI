@@ -38,7 +38,9 @@ from sqlalchemy import create_engine
 # Initialize the Chrome driver
 
 options = Options()
+options.add_argument("--no-sandbox")
 options.add_argument("--headless=new")
+
 driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
 
 # # Scrape Summary URL
@@ -154,8 +156,10 @@ def get_financial_report_file_links(driver, stock, prev_financial_report):
 
 def load_stock(stock, prev_financial_report_stock):
     options = Options()
+    options.add_argument("--no-sandbox")
     options.add_argument("--headless=new")
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+    
     company_profiles = get_company_profiles(driver, stock)
     today_trading_info = get_trading_info(driver, stock)
     financial_report_links = get_financial_report_file_links(driver, stock, prev_financial_report_stock)

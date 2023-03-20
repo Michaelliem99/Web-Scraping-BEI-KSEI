@@ -33,6 +33,7 @@ from sqlalchemy import create_engine
 # Initialize the Chrome driver
 
 options = Options()
+options.add_argument("--no-sandbox")
 options.add_argument("--headless=new")
 driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
 
