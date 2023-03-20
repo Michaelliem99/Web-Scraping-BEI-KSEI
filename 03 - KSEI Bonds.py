@@ -134,8 +134,8 @@ with tqdm(total=len(BEIBondsListDF['BondId'])) as pbar:
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = []
         
-        for BondId in BEIBondsListDF['BondId']:
-            if BondId in prev_bond_details_df['BondID']:
+        for BondId in BEIBondsListDF['BondID']:
+            if BondId in prev_bond_details_df['Short Code']:
                 continue
             else:
                 future = executor.submit(get_bond_details, BondId)
