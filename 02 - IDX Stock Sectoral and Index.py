@@ -39,7 +39,15 @@ options.add_argument("--no-sandbox")
 driver = webdriver.Chrome(options=options)
 print("Initialize Chrome Driver Done!")
 
+
 # # Scrape Summary URL
+
+engine = create_engine(
+    "postgresql://{}:{}@{}/{}".format(
+        os.getenv('POSTGRE_USER'), os.getenv('POSTGRE_PW'), os.getenv('POSTGRE_HOST'), os.getenv('POSTGRE_DB')
+    )
+)
+conn = engine.connect()
 
 # ## URL List
 
@@ -65,7 +73,7 @@ while True:
     except JSONDecodeError as e:
         time.sleep(1.5)
 
-PrevSectoralSummary = pd.read_excel('stock_index_sectoral.xlsx', sheet_name='Sectoral Summary')
+PrevSectoralSummary = pd.read_sql('BEISectoralSummary', con=conn)
 BEISectoralSummaryDF = pd.concat(
     [BEISectoralSummaryDF, PrevSectoralSummary]
 ).sort_values(
@@ -94,7 +102,7 @@ while True:
     except JSONDecodeError as e:
         time.sleep(1.5)
 
-PrevIndexSummary = pd.read_excel('stock_index_sectoral.xlsx', sheet_name='Index Summary')
+PrevIndexSummary = pd.read_sql('BEIIndexSummary', con=conn)
 BEIIndexSummaryDF = pd.concat(
     [BEIIndexSummaryDF, PrevIndexSummary]
 ).sort_values(
@@ -118,13 +126,6 @@ print("Export Result")
 #     BEIIndexSummaryDF.to_excel(writer, sheet_name='Index Summary', index=False)
 
 # ## Export to DB
-
-engine = create_engine(
-    "postgresql://{}:{}@{}/{}".format(
-        os.getenv('POSTGRE_USER'), os.getenv('POSTGRE_PW'), os.getenv('POSTGRE_HOST'), os.getenv('POSTGRE_DB')
-    )
-)
-conn = engine.connect()
 
 BEISectoralSummaryDF.to_sql('BEISectoralSummary', con=conn, if_exists='replace', index=False)
 BEIIndexSummaryDF.to_sql('BEIIndexSummary', con=conn, if_exists='replace', index=False)

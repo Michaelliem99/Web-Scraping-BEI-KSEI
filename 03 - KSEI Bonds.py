@@ -132,7 +132,7 @@ df_list = []
 
 print("Start Scrape Bond Details")
 with tqdm(total=len(BEIBondsListDF['BondId'])) as pbar:
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         futures = []
         
         for BondId in BEIBondsListDF['BondId']:

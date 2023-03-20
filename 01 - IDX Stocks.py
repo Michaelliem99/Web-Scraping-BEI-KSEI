@@ -197,7 +197,7 @@ except:
 # ### Run MultiThreading with Progress Bar
 print("Start Scrape Stock Details")
 with tqdm(total=len(BEIStockSummaryDF['StockCode'])) as pbar:
-    with ThreadPoolExecutor(max_workers=7) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         futures = []
         for StockCode in BEIStockSummaryDF['StockCode']:
             prev_financial_report_stock = prev_financial_report_df[prev_financial_report_df['StockCode'] == StockCode]
