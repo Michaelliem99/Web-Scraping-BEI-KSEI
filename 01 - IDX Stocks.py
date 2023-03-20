@@ -37,11 +37,12 @@ from sqlalchemy import create_engine
 
 # Initialize the Chrome driver
 
+print("Start Initialize Chrome Driver!")
 options = Options()
-options.add_argument("--no-sandbox")
 options.add_argument("--headless=new")
-
-driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+options.add_argument("--no-sandbox")
+driver = webdriver.Chrome(options=options)
+print("Initialize Chrome Driver Done!")
 
 # # Scrape Summary URL
 
@@ -54,7 +55,7 @@ urls = {
 }
 
 # ## BEI Stock Summary
-
+print("Start Scrape Stock Summary")
 while True:
     try:
         driver.get(urls['BEIStockSummary'])
@@ -70,7 +71,7 @@ while True:
 # ## Close and Quit Driver
 
 driver.quit()
-
+print("End Scrape Stock Summary")
 # # Scrape Stock Details URL
 
 # ## Company Profiles
@@ -156,9 +157,9 @@ def get_financial_report_file_links(driver, stock, prev_financial_report):
 
 def load_stock(stock, prev_financial_report_stock):
     options = Options()
-    options.add_argument("--no-sandbox")
     options.add_argument("--headless=new")
-    driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+    options.add_argument("--no-sandbox")
+    driver = webdriver.Chrome(options=options)
     
     company_profiles = get_company_profiles(driver, stock)
     today_trading_info = get_trading_info(driver, stock)
@@ -194,7 +195,7 @@ except:
     prev_financial_report_df = pd.read_excel('stocks.xlsx',  sheet_name='Financial Reports')
 
 # ### Run MultiThreading with Progress Bar
-
+print("Start Scrape Stock Details")
 with tqdm(total=len(BEIStockSummaryDF['StockCode'])) as pbar:
     with ThreadPoolExecutor(max_workers=7) as executor:
         futures = []
@@ -210,10 +211,11 @@ with tqdm(total=len(BEIStockSummaryDF['StockCode'])) as pbar:
             results['TradingInfo'].append(trading_info)
             results['FinancialReportLinks'].append(financial_report_links)
 
+print("End Scrape Stock Details")
+
 # ## Join All Stock Details
-
-# ### Load Previous Data
-
+print("Data Transformation")
+# ### Data Transformation
 CompanyProfilesDF = pd.concat(results['CompanyProfiles']).reset_index(drop=True).drop(
     columns=[
         'DataID', 'Divisi', 'EfekEmiten_EBA', 'EfekEmiten_ETF', 
@@ -242,7 +244,7 @@ FinancialReportLinksDF = pd.concat([FinancialReportLinksDF, prev_financial_repor
 FinancialReportLinksDF
 
 # # Export Result
-
+print('Export Result')
 # ## Export to Excel
 
 # with pd.ExcelWriter('stocks.xlsx') as writer:

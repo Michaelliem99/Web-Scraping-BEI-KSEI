@@ -35,16 +35,16 @@ from sqlalchemy import create_engine
 # Why Selenium? Because I need it to bypass cloudfare restriction
 
 # Initialize the Chrome driver
-
+print("Start Initialize Chrome Driver!")
 options = Options()
 options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 driver = webdriver.Chrome(options=options)
-
+print("Initialize Chrome Driver Done!")
 # # Scrape Bond Summary
 
 # ## BEI Bonds List
-
+print("Start Scrape Bond Summary")
 urls = {
     'Corporate Bond':'https://www.idx.co.id/secondary/get/BondSukuk/bond?pageSize=10000&indexFrom=1&bondType=1',
     'Goverment Bond':'https://www.idx.co.id/secondary/get/BondSukuk/bond?pageSize=10000&indexFrom=1&bondType=2'  
@@ -68,6 +68,7 @@ BEIBondsListDF
 # ## Close and Quit Driver
 
 driver.quit()
+print("End Scrape Bond Summary")
 
 # # Scrape Bond Details
 
@@ -129,6 +130,7 @@ except:
 
 df_list = []
 
+print("Start Scrape Bond Details")
 with tqdm(total=len(BEIBondsListDF['BondId'])) as pbar:
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = []
@@ -145,6 +147,7 @@ with tqdm(total=len(BEIBondsListDF['BondId'])) as pbar:
             pbar.update(1)
             df_list.append(future.result())
 
+print("End Scrape Bond Details")
 # ## Join All Bond Details and Cleaning
 
 # ### Join Bond Details
@@ -160,6 +163,7 @@ BondDetailsDF.columns
 # 2. Interest rate format is string, convert it to float32
 # 3. Replace '-' string with NaN
 
+print("Data Transformation")
 BondDetailsDF['Listing Date'] = BondDetailsDF['Listing Date'].apply(lambda x: dateparser.parse(x) if x != '-' else np.nan)
 BondDetailsDF['Mature Date'] = BondDetailsDF['Mature Date'].apply(lambda x: dateparser.parse(x) if ((x != '-') and (type(x) == str)) else np.nan)
 BondDetailsDF['Effective Date ISIN'] = BondDetailsDF['Effective Date ISIN'].apply(lambda x: dateparser.parse(x) if x != '-' else np.nan)
@@ -174,8 +178,8 @@ BondDetailsDF.describe(include='all')
 
 BondDetailsDF = BondDetailsDF.drop(columns=['Current Amount', 'Effective Date ISIN', 'Day Count Basis', 'Exercise Price'])
 
-# # Export Results
-
+# # Export Result
+print("Export Result")
 BondDetailsDF['LastScraped'] = datetime.now()
 BondDetailsDF = pd.concat([prev_bond_details_df, BondDetailsDF])
 BondDetailsDF

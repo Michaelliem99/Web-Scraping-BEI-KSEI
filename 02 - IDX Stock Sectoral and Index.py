@@ -32,10 +32,12 @@ from sqlalchemy import create_engine
 
 # Initialize the Chrome driver
 
+print("Start Initialize Chrome Driver!")
 options = Options()
-options.add_argument("--no-sandbox")
 options.add_argument("--headless=new")
-driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+options.add_argument("--no-sandbox")
+driver = webdriver.Chrome(options=options)
+print("Initialize Chrome Driver Done!")
 
 # # Scrape Summary URL
 
@@ -47,7 +49,7 @@ urls = {
 }
 
 # ## BEI Sectoral Summary
-
+print("Start Scrape Sectoral and Index Summary")
 driver.get(urls['BEISectoralSummary'])
 WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME, 'body'))
 BEISectoralSummaryContent = driver.find_element(By.TAG_NAME, value='body').text
@@ -106,9 +108,9 @@ BEIIndexSummaryDF
 # ## Close and Quit Driver
 
 driver.quit()
-
+print("End Scrape Sectoral and Index Summary")
 # # Export Result
-
+print("Export Result")
 # ## Export to Excel
 
 # with pd.ExcelWriter('stock_index_sectoral.xlsx') as writer:
