@@ -9,3 +9,4 @@ Features:
 2. Scrape IDX stock sectoral summary
 3. Scrape IDX stock index summary
 4. Scrape corporate and government bonds summary and details
+5. Scheduler to run it every 1st day of the month (scheduler run in my local Linux VM), result is exported to free Online PostgreSQL from nano.tech
