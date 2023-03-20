@@ -106,7 +106,7 @@ def get_bond_details(BondId):
         except:
             time.sleep(1.5)
     
-    time.sleep(2)
+    time.sleep(1)
     return data
 
 # ## Multithreading with Progress Bar
@@ -120,11 +120,7 @@ engine = create_engine(
 )
 conn = engine.connect()
 
-try:
-    prev_bond_details_df = pd.read_sql('SELECT * FROM BondDetails', con=conn)
-except:
-    prev_bond_details_df = pd.read_excel('bonds.xlsx')
-    print('BEIBondsListDF DB Not Available')
+prev_bond_details_df = pd.read_sql('SELECT * FROM BondDetails', con=conn)
 
 # ## Create List to Store Scraped Data
 
@@ -132,7 +128,7 @@ df_list = []
 
 print("Start Scrape Bond Details")
 with tqdm(total=len(BEIBondsListDF['BondId'])) as pbar:
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         futures = []
         
         for BondId in BEIBondsListDF['BondId']:
@@ -176,7 +172,7 @@ BondDetailsDF.describe(include='all')
 # 
 # 1. Every column dropped has mostly missing value
 
-BondDetailsDF = BondDetailsDF.drop(columns=['Current Amount', 'Effective Date ISIN', 'Day Count Basis', 'Exercise Price'])
+BondDetailsDF = BondDetailsDF.drop(columns=['Current Amount', 'Effective Date ISIN', 'Day Count Basis'])
 
 # # Export Result
 print("Export Result")

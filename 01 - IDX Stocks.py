@@ -91,7 +91,7 @@ def get_company_profiles(driver, stock):
             time.sleep(1.5)
 #             print(stock, 'Company Profiles JSON is not available!', 'Retrying!')
     
-    time.sleep(1)    
+    time.sleep(0.75)    
     
     return CompanyProfilesRow
 
@@ -111,7 +111,7 @@ def get_trading_info(driver, stock):
             time.sleep(1.5)
 #             print(stock, 'Trading Info JSON is not available!', 'Retrying!')
     
-    time.sleep(1)
+    time.sleep(0.75)
     
     return TradingInfoRows
 
@@ -146,7 +146,7 @@ def get_financial_report_file_links(driver, stock, prev_financial_report):
                     except JSONDecodeError as e:
                         time.sleep(1.5)
     #                     print(stock, year, period, 'JSON is not available!', 'Retrying!')
-        time.sleep(2)
+        time.sleep(0.75)
     return FinancialReportRows
 
 # ## Multithreading Scrape
@@ -162,8 +162,10 @@ def load_stock(stock, prev_financial_report_stock):
     driver = webdriver.Chrome(options=options)
     
     company_profiles = get_company_profiles(driver, stock)
-    today_trading_info = get_trading_info(driver, stock)
+    trading_info = get_trading_info(driver, stock)
     financial_report_links = get_financial_report_file_links(driver, stock, prev_financial_report_stock)
+
+    driver.quit()
     
     return company_profiles, trading_info, financial_report_links
 
@@ -171,7 +173,7 @@ def load_stock(stock, prev_financial_report_stock):
 
 results = {
     'CompanyProfiles':[],
-    'TodayTradingInfo':[],
+    'TradingInfo':[],
     'FinancialReportLinks':[]
 }
 
@@ -184,20 +186,14 @@ engine = create_engine(
 )
 conn = engine.connect()
 
-try:
-    prev_trading_info = pd.read_sql('SELECT * FROM IDXTradingInfo', con=conn)
-except:
-    print('IDXTradingInfo DB Not Available')
-try:
-    prev_financial_report_df = pd.read_sql('SELECT * FROM IDXFinancialReportLinks', con=conn)
-except:
-    print('IDXFinancialReportLinks DB Not Available')
-    prev_financial_report_df = pd.read_excel('stocks.xlsx',  sheet_name='Financial Reports')
+prev_trading_info = pd.read_sql('SELECT * FROM IDXTradingInfo', con=conn)
+prev_financial_report_df = pd.read_sql('SELECT * FROM IDXFinancialReportLinks', con=conn)
 
 # ### Run MultiThreading with Progress Bar
+
 print("Start Scrape Stock Details")
 with tqdm(total=len(BEIStockSummaryDF['StockCode'])) as pbar:
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         futures = []
         for StockCode in BEIStockSummaryDF['StockCode']:
             prev_financial_report_stock = prev_financial_report_df[prev_financial_report_df['StockCode'] == StockCode]
@@ -207,6 +203,7 @@ with tqdm(total=len(BEIStockSummaryDF['StockCode'])) as pbar:
         for future in as_completed(futures):
             pbar.update(1)
             company_profiles, trading_info, financial_report_links = future.result()
+            
             results['CompanyProfiles'].append(company_profiles)
             results['TradingInfo'].append(trading_info)
             results['FinancialReportLinks'].append(financial_report_links)

@@ -57,14 +57,13 @@ urls = {
 }
 
 # ## BEI Sectoral Summary
-print("Start Scrape Sectoral and Index Summary")
-driver.get(urls['BEISectoralSummary'])
-WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME, 'body'))
-BEISectoralSummaryContent = driver.find_element(By.TAG_NAME, value='body').text
-time.sleep(2)
-
 while True:
     try:
+        print("Start Scrape Sectoral and Index Summary")
+        driver.get(urls['BEISectoralSummary'])
+        WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME, 'body'))
+        BEISectoralSummaryContent = driver.find_element(By.TAG_NAME, value='body').text
+
         BEISectoralSummaryDF = pd.DataFrame(json.loads(BEISectoralSummaryContent)['data']).drop(columns='IntRow')
         BEISectoralSummaryDF['DTCreate'] = pd.to_datetime(BEISectoralSummaryDF['DTCreate']).dt.normalize()
         BEISectoralSummaryDF['LastScraped'] = datetime.now()
@@ -86,13 +85,12 @@ BEISectoralSummaryDF
 
 # ## BEI Index Summary
 
-driver.get(urls['BEIIndexSummary'])
-WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME, 'body'))
-BEIIndexSummaryContent = driver.find_element(By.TAG_NAME, value='body').text
-time.sleep(2)
-
 while True:
     try:
+        driver.get(urls['BEIIndexSummary'])
+        WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME, 'body'))
+        BEIIndexSummaryContent = driver.find_element(By.TAG_NAME, value='body').text
+
         BEIIndexSummaryDF = pd.DataFrame(json.loads(BEIIndexSummaryContent)['Items']).drop(columns='Links')
         BEIIndexSummaryDF['DtCreate'] = pd.to_datetime(BEIIndexSummaryDF['DtCreate']).dt.normalize()
         BEIIndexSummaryDF = BEIIndexSummaryDF.rename(columns={'DtCreate':'DTCreate'})
