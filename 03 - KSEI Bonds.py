@@ -122,7 +122,8 @@ conn = engine.connect()
 try:
     prev_bond_details_df = pd.read_sql('SELECT * FROM BondDetails', con=conn)
 except:
-    prev_financial_report_df = pd.read_excel('bonds.xlsx')
+    prev_bond_details_df = pd.read_excel('bonds.xlsx')
+    print(prev_bond_details_df)
     print('BEIBondsListDF DB Not Available')
 
 # ## Create List to Store Scraped Data
