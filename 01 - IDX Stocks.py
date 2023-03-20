@@ -26,6 +26,7 @@ import threading
 import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
+import gc
 
 import os
 import sqlalchemy
@@ -211,7 +212,7 @@ with tqdm(total=len(BEIStockSummaryDF['StockCode'])) as pbar:
 print("End Scrape Stock Details")
 
 # ## Join All Stock Details
-print("Data Transformation")
+print("Data Transformation and Export Result")
 # ### Data Transformation
 CompanyProfilesDF = pd.concat(results['CompanyProfiles']).reset_index(drop=True).drop(
     columns=[
@@ -224,12 +225,20 @@ CompanyProfilesDF['TanggalPencatatan'] = pd.to_datetime(CompanyProfilesDF['Tangg
 CompanyProfilesDF['Logo'] = ['https://www.idx.co.id' + logo for logo in CompanyProfilesDF['Logo']]
 CompanyProfilesDF['LastScraped'] = datetime.now()
 CompanyProfilesDF
+CompanyProfilesDF.to_sql('IDXCompanyProfiles', con=conn, if_exists='replace', index=False)
+
+del CompanyProfilesDF
+gc.collect()
 
 TradingInfoDF = pd.concat(results['TradingInfo']).drop(columns=['No', 'Remarks']).reset_index(drop=True)
 TradingInfoDF['Date'] = pd.to_datetime(TradingInfoDF['Date'])
 TradingInfoDF['LastScraped'] = datetime.now()
 TradingInfoDF = pd.concat([TradingInfoDF, prev_trading_info]).sort_values(by='Date').drop_duplicates(subset=['StockCode', 'Date'], keep='first').reset_index(drop=True)
 TradingInfoDF
+TradingInfoDF.to_sql('IDXTradingInfo', con=conn, if_exists='replace', index=False)
+
+del TradingInfoDF
+gc.collect()
 
 FinancialReportLinksDF = pd.concat(results['FinancialReportLinks']).reset_index(drop=True).drop(
     columns=['File_ID', 'File_Size', 'File_Type']
@@ -239,9 +248,13 @@ FinancialReportLinksDF['File_Path'] = 'https://www.idx.co.id/' + FinancialReport
 FinancialReportLinksDF['LastScraped'] = datetime.now()
 FinancialReportLinksDF = pd.concat([FinancialReportLinksDF, prev_financial_report_df]).reset_index(drop=True)
 FinancialReportLinksDF
+FinancialReportLinksDF.to_sql('IDXFinancialReportLinks', con=conn, if_exists='replace', index=False)
+
+del FinancialReportLinksDF
+gc.collect()
 
 # # Export Result
-print('Export Result')
+
 # ## Export to Excel
 
 # with pd.ExcelWriter('stocks.xlsx') as writer:
@@ -251,6 +264,6 @@ print('Export Result')
 
 # ## Export to DB
 
-CompanyProfilesDF.to_sql('IDXCompanyProfiles', con=conn, if_exists='replace', index=False)
-TradingInfoDF.to_sql('IDXTradingInfo', con=conn, if_exists='replace', index=False)
-FinancialReportLinksDF.to_sql('IDXFinancialReportLinks', con=conn, if_exists='replace', index=False)
+
+
+
