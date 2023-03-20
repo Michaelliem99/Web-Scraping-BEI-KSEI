@@ -237,6 +237,7 @@ TradingInfoDF = pd.concat([TradingInfoDF, prev_trading_info]).sort_values(by='Da
 TradingInfoDF
 TradingInfoDF.to_sql('IDXTradingInfo', con=conn, if_exists='replace', index=False)
 
+del prev_trading_info
 del TradingInfoDF
 gc.collect()
 
@@ -250,6 +251,7 @@ FinancialReportLinksDF = pd.concat([FinancialReportLinksDF, prev_financial_repor
 FinancialReportLinksDF
 FinancialReportLinksDF.to_sql('IDXFinancialReportLinks', con=conn, if_exists='replace', index=False)
 
+del prev_financial_report_df
 del FinancialReportLinksDF
 gc.collect()
 
