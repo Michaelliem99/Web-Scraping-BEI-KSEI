@@ -186,8 +186,8 @@ engine = create_engine(
 )
 conn = engine.connect()
 
-prev_trading_info = pd.read_sql('SELECT * FROM IDXTradingInfo', con=conn)
-prev_financial_report_df = pd.read_sql('SELECT * FROM IDXFinancialReportLinks', con=conn)
+prev_trading_info = pd.read_sql('SELECT * FROM \"IDXTradingInfo\"', con=conn)
+prev_financial_report_df = pd.read_sql('SELECT * FROM \"IDXFinancialReportLinks\"', con=conn)
 
 # ### Run MultiThreading with Progress Bar
 

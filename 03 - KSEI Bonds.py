@@ -120,7 +120,7 @@ engine = create_engine(
 )
 conn = engine.connect()
 
-prev_bond_details_df = pd.read_sql('SELECT * FROM BondDetails', con=conn)
+prev_bond_details_df = pd.read_sql('SELECT * FROM \"BondDetails\"', con=conn)
 
 # ## Create List to Store Scraped Data
 
