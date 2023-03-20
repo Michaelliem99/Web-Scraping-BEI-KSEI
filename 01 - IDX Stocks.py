@@ -228,6 +228,7 @@ CompanyProfilesDF
 CompanyProfilesDF.to_sql('IDXCompanyProfiles', con=conn, if_exists='replace', index=False)
 
 del CompanyProfilesDF
+results['CompanyProfiles'] = None
 gc.collect()
 
 TradingInfoDF = pd.concat(results['TradingInfo']).drop(columns=['No', 'Remarks']).reset_index(drop=True)
@@ -237,8 +238,8 @@ TradingInfoDF = pd.concat([TradingInfoDF, prev_trading_info]).sort_values(by='Da
 TradingInfoDF
 TradingInfoDF.to_sql('IDXTradingInfo', con=conn, if_exists='replace', index=False)
 
-del prev_trading_info
-del TradingInfoDF
+del prev_trading_info, TradingInfoDF
+results['TradingInfo'] = None
 gc.collect()
 
 FinancialReportLinksDF = pd.concat(results['FinancialReportLinks']).reset_index(drop=True).drop(
@@ -251,8 +252,7 @@ FinancialReportLinksDF = pd.concat([FinancialReportLinksDF, prev_financial_repor
 FinancialReportLinksDF
 FinancialReportLinksDF.to_sql('IDXFinancialReportLinks', con=conn, if_exists='replace', index=False)
 
-del prev_financial_report_df
-del FinancialReportLinksDF
+del prev_financial_report_df, FinancialReportLinksDF, results
 gc.collect()
 
 # # Export Result
