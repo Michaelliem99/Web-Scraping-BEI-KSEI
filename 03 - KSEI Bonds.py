@@ -38,6 +38,7 @@ from sqlalchemy import create_engine
 
 options = Options()
 options.add_argument("--headless=new")
+options.add_argument("--no-sandbox")
 driver = webdriver.Chrome(options=options)
 
 # # Scrape Bond Summary
