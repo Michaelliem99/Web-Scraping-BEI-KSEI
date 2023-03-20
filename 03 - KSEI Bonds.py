@@ -123,7 +123,6 @@ try:
     prev_bond_details_df = pd.read_sql('SELECT * FROM BondDetails', con=conn)
 except:
     prev_bond_details_df = pd.read_excel('bonds.xlsx')
-    print(prev_bond_details_df)
     print('BEIBondsListDF DB Not Available')
 
 # ## Create List to Store Scraped Data
@@ -134,7 +133,7 @@ with tqdm(total=len(BEIBondsListDF['BondId'])) as pbar:
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = []
         
-        for BondId in BEIBondsListDF['BondID']:
+        for BondId in BEIBondsListDF['BondId']:
             if BondId in prev_bond_details_df['Short Code']:
                 continue
             else:
