@@ -170,6 +170,23 @@ def load_stock(stock, prev_financial_report_stock):
     
     return company_profiles, trading_info, financial_report_links
 
+# ### Load Previous Data
+
+def read_sql():
+    engine = create_engine(
+        "postgresql://{}:{}@{}/{}".format(
+            os.getenv('POSTGRE_USER'), os.getenv('POSTGRE_PW'), os.getenv('POSTGRE_HOST'), os.getenv('POSTGRE_DB')
+        )
+    )
+    conn = engine.connect()
+
+    prev_trading_info = pd.read_sql('SELECT * FROM \"IDXTradingInfo\"', con=conn)
+    prev_financial_report_df = pd.read_sql('SELECT * FROM \"IDXFinancialReportLinks\"', con=conn)
+
+    return prev_trading_info, prev_financial_report_df
+
+prev_trading_info, prev_financial_report_df = read_sql()
+
 # ### Create list to store scraped data
 
 results = {
@@ -178,17 +195,6 @@ results = {
     'FinancialReportLinks':[]
 }
 
-# ### Load Previous Data
-
-engine = create_engine(
-    "postgresql://{}:{}@{}/{}".format(
-        os.getenv('POSTGRE_USER'), os.getenv('POSTGRE_PW'), os.getenv('POSTGRE_HOST'), os.getenv('POSTGRE_DB')
-    )
-)
-conn = engine.connect()
-
-prev_trading_info = pd.read_sql('SELECT * FROM \"IDXTradingInfo\"', con=conn)
-prev_financial_report_df = pd.read_sql('SELECT * FROM \"IDXFinancialReportLinks\"', con=conn)
 
 # ### Run MultiThreading with Progress Bar
 
@@ -211,9 +217,22 @@ with tqdm(total=len(BEIStockSummaryDF['StockCode'])) as pbar:
 
 print("End Scrape Stock Details")
 
-# ## Join All Stock Details
+# ## Join All Stock Details and Export Result
 print("Data Transformation and Export Result")
+
+# ### Export SQL
+def export_sql(df, name):
+    engine = create_engine(
+        "postgresql://{}:{}@{}/{}".format(
+            os.getenv('POSTGRE_USER'), os.getenv('POSTGRE_PW'), os.getenv('POSTGRE_HOST'), os.getenv('POSTGRE_DB')
+        )
+    )
+    conn = engine.connect()
+
+    df.to_sql(name, con=conn, if_exists='replace', index=False)
+
 # ### Data Transformation
+
 CompanyProfilesDF = pd.concat(results['CompanyProfiles']).reset_index(drop=True).drop(
     columns=[
         'DataID', 'Divisi', 'EfekEmiten_EBA', 'EfekEmiten_ETF', 
@@ -225,8 +244,8 @@ CompanyProfilesDF['TanggalPencatatan'] = pd.to_datetime(CompanyProfilesDF['Tangg
 CompanyProfilesDF['Logo'] = ['https://www.idx.co.id' + logo for logo in CompanyProfilesDF['Logo']]
 CompanyProfilesDF['LastScraped'] = datetime.now()
 CompanyProfilesDF
-CompanyProfilesDF.to_sql('IDXCompanyProfiles', con=conn, if_exists='replace', index=False)
 
+export_sql(CompanyProfilesDF, 'IDXCompanyProfiles')
 del CompanyProfilesDF
 results['CompanyProfiles'] = None
 gc.collect()
@@ -236,8 +255,8 @@ TradingInfoDF['Date'] = pd.to_datetime(TradingInfoDF['Date'])
 TradingInfoDF['LastScraped'] = datetime.now()
 TradingInfoDF = pd.concat([TradingInfoDF, prev_trading_info]).sort_values(by='Date').drop_duplicates(subset=['StockCode', 'Date'], keep='first').reset_index(drop=True)
 TradingInfoDF
-TradingInfoDF.to_sql('IDXTradingInfo', con=conn, if_exists='replace', index=False)
 
+export_sql(TradingInfoDF, 'IDXTradingInfo')
 del prev_trading_info, TradingInfoDF
 results['TradingInfo'] = None
 gc.collect()
@@ -250,8 +269,8 @@ FinancialReportLinksDF['File_Path'] = 'https://www.idx.co.id/' + FinancialReport
 FinancialReportLinksDF['LastScraped'] = datetime.now()
 FinancialReportLinksDF = pd.concat([FinancialReportLinksDF, prev_financial_report_df]).reset_index(drop=True)
 FinancialReportLinksDF
-FinancialReportLinksDF.to_sql('IDXFinancialReportLinks', con=conn, if_exists='replace', index=False)
 
+export_sql(FinancialReportLinksDF, 'IDXFinancialReportLinks')
 del prev_financial_report_df, FinancialReportLinksDF, results
 gc.collect()
 

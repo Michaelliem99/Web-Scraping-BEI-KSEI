@@ -113,14 +113,19 @@ def get_bond_details(BondId):
 
 # ## Load Previous Scraped Data
 
-engine = create_engine(
-    "postgresql://{}:{}@{}/{}".format(
-        os.getenv('POSTGRE_USER'), os.getenv('POSTGRE_PW'), os.getenv('POSTGRE_HOST'), os.getenv('POSTGRE_DB')
+def read_sql():
+    engine = create_engine(
+        "postgresql://{}:{}@{}/{}".format(
+            os.getenv('POSTGRE_USER'), os.getenv('POSTGRE_PW'), os.getenv('POSTGRE_HOST'), os.getenv('POSTGRE_DB')
+        )
     )
-)
-conn = engine.connect()
+    conn = engine.connect()
 
-prev_bond_details_df = pd.read_sql('SELECT * FROM \"BondDetails\"', con=conn)
+    prev_bond_details_df = pd.read_sql('SELECT * FROM \"BondDetails\"', con=conn)
+
+    return prev_bond_details_df
+
+prev_bond_details_df = read_sql()
 
 # ## Create List to Store Scraped Data
 
@@ -186,4 +191,14 @@ BondDetailsDF
 
 # ## Export to DB
 
-BondDetailsDF.to_sql('BondDetails', con=conn, if_exists='replace', index=False)
+def export_sql(df, name):
+    engine = create_engine(
+        "postgresql://{}:{}@{}/{}".format(
+            os.getenv('POSTGRE_USER'), os.getenv('POSTGRE_PW'), os.getenv('POSTGRE_HOST'), os.getenv('POSTGRE_DB')
+        )
+    )
+    conn = engine.connect()
+
+    df.to_sql(name, con=conn, if_exists='replace', index=False)
+
+export_sql(BondDetailsDF, 'BondDetails')
