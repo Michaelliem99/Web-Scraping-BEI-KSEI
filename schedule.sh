@@ -2,11 +2,12 @@
 cd /home/michaelliem99/Desktop/Portfolio/Web-Scraping-BEI-KSEI
 now=$(date)
 echo "Start Time: $now" &&
-echo "Start IDX Stocks" &&
+echo "START 01- IDX STOCKS" &&
 /home/michaelliem99/anaconda3/envs/web_scraping/bin/python "/home/michaelliem99/Desktop/Portfolio/Web-Scraping-BEI-KSEI/01 - IDX Stocks.py" &&
-echo "Start IDX Stock Sectoral and Index" &&
+echo "START 02 - IDX STOCK SECTORAL AND INDEX" &&
 /home/michaelliem99/anaconda3/envs/web_scraping/bin/python "/home/michaelliem99/Desktop/Portfolio/Web-Scraping-BEI-KSEI/02 - IDX Stock Sectoral and Index.py" &&
-echo "Start IDX KSEI Bonds" &&
+echo "START 03 - IDX KSEI BONDS" &&
 /home/michaelliem99/anaconda3/envs/web_scraping/bin/python "/home/michaelliem99/Desktop/Portfolio/Web-Scraping-BEI-KSEI/03 - KSEI Bonds.py" &&
 now=$(date)
-echo "End Time: $now"
+echo "End Time: $now" && 
+rm -r /tmp/.com.google.Chrome*

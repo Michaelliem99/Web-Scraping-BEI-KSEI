@@ -67,6 +67,7 @@ BEIBondsListDF
 
 # ## Close and Quit Driver
 
+driver.close()
 driver.quit()
 print("End Scrape Bond Summary")
 
@@ -133,7 +134,7 @@ df_list = []
 
 print("Start Scrape Bond Details")
 with tqdm(total=len(BEIBondsListDF['BondId'])) as pbar:
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=6) as executor:
         futures = []
         
         for BondId in BEIBondsListDF['BondId']:
