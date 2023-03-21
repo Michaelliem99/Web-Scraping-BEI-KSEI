@@ -97,11 +97,27 @@ def get_company_profiles(driver, stock):
     return CompanyProfilesRow
 
 # ## Trading Info
-
+today = datetime.today()
 def get_trading_info(driver, stock):
+    global today
+    query = '''
+        SELECT \"IDXTradingInfo\".\"StockCode\", \"IDXTradingInfo\".\"Date\" FROM \"IDXTradingInfo\" 
+        WHERE
+            \"IDXTradingInfo\".\"StockCode\" = \'{}\' 
+    '''.format(StockCode)
+    
+    df = read_sql(query)
+
+    if len(df) > 0:
+        max_date = df['Date'].max()
+        difference = (today - max_date).days + 1
+
+        trading_info_url = 'https://www.idx.co.id/primary/ListedCompany/GetTradingInfoSS?code={}&start=0&length={}'.format(stock, difference)
+    else:
+        trading_info_url = 'https://www.idx.co.id/primary/ListedCompany/GetTradingInfoSS?code={}&start=0&length=10000'.format(stock)
+
     while True:
         try:
-            trading_info_url = 'https://www.idx.co.id/primary/ListedCompany/GetTradingInfoSS?code={}&start=0&length=10000'.format(stock)
             driver.get(trading_info_url)
             WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME, 'body'))
             TradingInfoContent = driver.find_element(By.TAG_NAME, value='body').text
@@ -117,20 +133,28 @@ def get_trading_info(driver, stock):
     return TradingInfoRows
 
 # ## Financial Reports File Links
-# Maximum last 2 years (Current: 2023, Min: 2022)
+# Maximum last 3 years (Current: 2023, Min: 2021)
 # 
 # Code will only find for any missing data, previous available data won't be overwritten.
 
-def get_financial_report_file_links(driver, stock, prev_financial_report):
+def get_financial_report_file_links(driver, stock):
     current_year = datetime.now().year
-    # last 2 years
-    years = [current_year, current_year-1]
+    # last 3 years
+    years = [current_year, current_year-2]
     periods = ['TW1', 'TW2', 'TW3', 'Audit']
     
     FinancialReportRows = pd.DataFrame()
     for year in years:
         for period in periods:
-            if len(prev_financial_report_stock[(prev_financial_report_stock['Report_Period'] == period) & (prev_financial_report_stock['Report_Year'] == year)]) > 0:
+            query = '''
+                SELECT * FROM \"IDXFinancialReportLinks\" 
+                WHERE 
+                    \"IDXFinancialReportLinks\".\"StockCode\" = \'{}\' 
+                    AND \"IDXFinancialReportLinks\".\"Report_Period\" = \'{}\' 
+                    AND \"IDXFinancialReportLinks\".\"Report_Year\" = \'{}\'
+            '''.format(StockCode, period, year)
+            
+            if len(read_sql(query)) > 0:
                 continue
             else:
                 while True:
@@ -156,7 +180,7 @@ def get_financial_report_file_links(driver, stock, prev_financial_report):
 
 # Define a worker function that takes stock codes from the queue and loads them in parallel
 
-def load_stock(stock, prev_financial_report_stock):
+def load_stock(stock):
     options = Options()
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
@@ -164,7 +188,7 @@ def load_stock(stock, prev_financial_report_stock):
     
     company_profiles = get_company_profiles(driver, stock)
     trading_info = get_trading_info(driver, stock)
-    financial_report_links = get_financial_report_file_links(driver, stock, prev_financial_report_stock)
+    financial_report_links = get_financial_report_file_links(driver, stock)
 
     driver.quit()
     
@@ -172,7 +196,7 @@ def load_stock(stock, prev_financial_report_stock):
 
 # ### Load Previous Data
 
-def read_sql():
+def read_sql(query):
     engine = create_engine(
         "postgresql://{}:{}@{}/{}".format(
             os.getenv('POSTGRE_USER'), os.getenv('POSTGRE_PW'), os.getenv('POSTGRE_HOST'), os.getenv('POSTGRE_DB')
@@ -180,12 +204,9 @@ def read_sql():
     )
     conn = engine.connect()
 
-    prev_trading_info = pd.read_sql('SELECT * FROM \"IDXTradingInfo\"', con=conn)
-    prev_financial_report_df = pd.read_sql('SELECT * FROM \"IDXFinancialReportLinks\"', con=conn)
+    df = pd.read_sql(query, con=conn)
 
-    return prev_trading_info, prev_financial_report_df
-
-prev_trading_info, prev_financial_report_df = read_sql()
+    return df
 
 # ### Create list to store scraped data
 
@@ -195,7 +216,6 @@ results = {
     'FinancialReportLinks':[]
 }
 
-
 # ### Run MultiThreading with Progress Bar
 
 print("Start Scrape Stock Details")
@@ -203,8 +223,7 @@ with tqdm(total=len(BEIStockSummaryDF['StockCode'])) as pbar:
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = []
         for StockCode in BEIStockSummaryDF['StockCode']:
-            prev_financial_report_stock = prev_financial_report_df[prev_financial_report_df['StockCode'] == StockCode]
-            future = executor.submit(load_stock, StockCode, prev_financial_report_stock)
+            future = executor.submit(load_stock, StockCode)
             futures.append(future)
             
         for future in as_completed(futures):
@@ -221,7 +240,7 @@ print("End Scrape Stock Details")
 print("Data Transformation and Export Result")
 
 # ### Export SQL
-def export_sql(df, name):
+def export_sql(df, name, if_exists='replace'):
     engine = create_engine(
         "postgresql://{}:{}@{}/{}".format(
             os.getenv('POSTGRE_USER'), os.getenv('POSTGRE_PW'), os.getenv('POSTGRE_HOST'), os.getenv('POSTGRE_DB')
@@ -229,7 +248,7 @@ def export_sql(df, name):
     )
     conn = engine.connect()
 
-    df.to_sql(name, con=conn, if_exists='replace', index=False)
+    df.to_sql(name, con=conn, if_exists=if_exists, index=False)
 
 # ### Data Transformation
 
@@ -253,11 +272,10 @@ gc.collect()
 TradingInfoDF = pd.concat(results['TradingInfo']).drop(columns=['No', 'Remarks']).reset_index(drop=True)
 TradingInfoDF['Date'] = pd.to_datetime(TradingInfoDF['Date'])
 TradingInfoDF['LastScraped'] = datetime.now()
-TradingInfoDF = pd.concat([TradingInfoDF, prev_trading_info]).sort_values(by='Date').drop_duplicates(subset=['StockCode', 'Date'], keep='first').reset_index(drop=True)
 TradingInfoDF
 
-export_sql(TradingInfoDF, 'IDXTradingInfo')
-del prev_trading_info, TradingInfoDF
+export_sql(TradingInfoDF, 'IDXTradingInfo', if_exists='append')
+del TradingInfoDF
 results['TradingInfo'] = None
 gc.collect()
 
@@ -267,11 +285,10 @@ FinancialReportLinksDF = pd.concat(results['FinancialReportLinks']).reset_index(
 FinancialReportLinksDF['File_Modified'] = pd.to_datetime(FinancialReportLinksDF['File_Modified']).dt.normalize()
 FinancialReportLinksDF['File_Path'] = 'https://www.idx.co.id/' + FinancialReportLinksDF['File_Path']
 FinancialReportLinksDF['LastScraped'] = datetime.now()
-FinancialReportLinksDF = pd.concat([FinancialReportLinksDF, prev_financial_report_df]).reset_index(drop=True)
 FinancialReportLinksDF
 
-export_sql(FinancialReportLinksDF, 'IDXFinancialReportLinks')
-del prev_financial_report_df, FinancialReportLinksDF, results
+export_sql(FinancialReportLinksDF, 'IDXFinancialReportLinks', if_exists='append')
+del FinancialReportLinksDF, results
 gc.collect()
 
 # # Export Result
