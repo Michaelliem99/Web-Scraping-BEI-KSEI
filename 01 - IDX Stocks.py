@@ -104,7 +104,7 @@ def get_trading_info(driver, stock):
         SELECT \"IDXTradingInfo\".\"StockCode\", \"IDXTradingInfo\".\"Date\" FROM \"IDXTradingInfo\" 
         WHERE
             \"IDXTradingInfo\".\"StockCode\" = \'{}\' 
-    '''.format(StockCode)
+    '''.format(stock)
     
     df = read_sql(query)
 
